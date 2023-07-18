@@ -56,7 +56,14 @@ func getPlaylistByID(c *gin.Context) {
     var contents []playlist_content
 
     playlistsRow := db.QueryRow("SELECT * FROM playlists WHERE id = ?", id)
-    if err := playlistsRow.Scan(&playlist.ID, &playlist.Name, &playlist.Creator, &playlist.SongCount, &playlist.Platform, &playlist.Converted); err != nil {
+    if err := playlistsRow.Scan(
+        &playlist.ID,
+        &playlist.Name,
+        &playlist.Creator,
+        &playlist.SongCount,
+        &playlist.Platform,
+        &playlist.Converted); err != nil {
+
         log.Println(fmt.Errorf("playlistsById %v", err))
         if err == sql.ErrNoRows {
             c.IndentedJSON(http.StatusNotFound, gin.H{"message": "There is no such playlist"})
@@ -73,7 +80,18 @@ func getPlaylistByID(c *gin.Context) {
     // Loop through rows, using Scan to assign column data to struct fields.
     for rows.Next() {
         var content playlist_content
-        if err := rows.Scan(&content.ID, &content.Title, &content.PTrackNum, &content.ISRC, &content.Artist, &content.Album, &content.AlbumID, &content.Explicit, &content.ConvertURL, &content.TrackNum); err != nil {
+        if err := rows.Scan(
+            &content.ID,
+            &content.Title,
+            &content.PTrackNum,
+            &content.ISRC,
+            &content.Artist,
+            &content.Album,
+            &content.AlbumID,
+            &content.Explicit,
+            &content.ConvertURL,
+            &content.TrackNum); err != nil {
+
             log.Println(fmt.Errorf("playlistsById %v", err))
             c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Error getting playlist by ID"})
         }
@@ -117,6 +135,7 @@ func postPlaylists(c *gin.Context) {
     newPlaylistData.SongCount,
     newPlaylistData.Platform,
     newPlaylistData.Converted)
+
     if err != nil {
         c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Error adding a new playlist"})
     }
