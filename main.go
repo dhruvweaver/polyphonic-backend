@@ -14,16 +14,18 @@ import (
 var db *sql.DB
 
 type playlist struct {
-    ID         string `json:"id"`
-    Name       string `json:"name"`
-    Creator    string `json:"creator"`
-    SongCount  int    `json:"song_count"`
-    Platform   string `json:"platform"`
-    Converted  bool   `json:"converted"`
+    ID          string `json:"id"`
+    Name        string `json:"name"`
+    Creator     string `json:"creator"`
+    SongCount   int    `json:"song_count"`
+    Platform    string `json:"platform"`
+    OriginalURL string `json:"original_url"`
+    Converted   bool   `json:"converted"`
 }
 
 type playlist_content struct {
     ID          string `json:"id"`
+    KeyID       string `json:"key_id"`
     Title       string `json:"title"`
     PTrackNum   int    `json:"playlist_track_num"`
     ISRC        string `json:"isrc"`
@@ -31,18 +33,21 @@ type playlist_content struct {
     Album       string `json:"album"`
     AlbumID     string `json:"album_id"`
     Explicit    bool   `json:"explicit"`
+    OriginalURL string `json:"original_url"`
     ConvertURL  string `json:"converted_url"`
+    Confidence  int    `json:"confidence"`
     TrackNum    int    `json:"track_num"`
 }
 
 type playlist_data struct {
-    ID         string `json:"id"`
-    Name       string `json:"name"`
-    Creator    string `json:"creator"`
-    SongCount  int    `json:"song_count"`
-    Platform   string `json:"platform"`
-    Converted  bool   `json:"converted"`
-    Content    []playlist_content `json:"content"`
+    ID          string `json:"id"`
+    Name        string `json:"name"`
+    Creator     string `json:"creator"`
+    SongCount   int    `json:"song_count"`
+    Platform    string `json:"platform"`
+    OriginalURL string `json:"original_url"`
+    Converted   bool   `json:"converted"`
+    Content     []playlist_content `json:"content"`
 }
 
 // getPlaylistByID locates the playlist whose ID value matches the id
@@ -62,6 +67,7 @@ func getPlaylistByID(c *gin.Context) {
         &playlist.Creator,
         &playlist.SongCount,
         &playlist.Platform,
+        &playlist.OriginalURL,
         &playlist.Converted); err != nil {
 
         log.Println(fmt.Errorf("playlistsById %v", err))
@@ -72,7 +78,7 @@ func getPlaylistByID(c *gin.Context) {
         c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Error getting playlist by ID"})
     }
 
-    rows, err := db.Query("SELECT * FROM playlist_content WHERE id = ?", id)
+    rows, err := db.Query("SELECT * FROM playlist_content WHERE id = ? ORDER BY playlist_track_num ASC", id)
     if err != nil {
         c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Error getting playlist content"})
     }
@@ -82,6 +88,7 @@ func getPlaylistByID(c *gin.Context) {
         var content playlist_content
         if err := rows.Scan(
             &content.ID,
+            &content.KeyID,
             &content.Title,
             &content.PTrackNum,
             &content.ISRC,
@@ -89,7 +96,9 @@ func getPlaylistByID(c *gin.Context) {
             &content.Album,
             &content.AlbumID,
             &content.Explicit,
+            &content.OriginalURL,
             &content.ConvertURL,
+            &content.Confidence,
             &content.TrackNum); err != nil {
 
             log.Println(fmt.Errorf("playlistsById %v", err))
@@ -108,6 +117,7 @@ func getPlaylistByID(c *gin.Context) {
     playlistData.Creator = playlist.Creator
     playlistData.SongCount = playlist.SongCount
     playlistData.Platform = playlist.Platform
+    playlistData.OriginalURL = playlist.OriginalURL
     playlistData.Converted = playlist.Converted
     playlistData.Content = contents
 
@@ -128,21 +138,23 @@ func postPlaylists(c *gin.Context) {
     // TODO: check to see if ID already exists
 
     // Add the new album to the database.
-    _, err := db.Exec("INSERT INTO playlists (id, name, creator, song_count, platform, converted) VALUES (?, ?, ?, ?, ?, ?)",
+    _, err := db.Exec("INSERT INTO playlists (id, name, creator, song_count, platform, original_url, converted) VALUES (?, ?, ?, ?, ?, ?, ?)",
     newPlaylistData.ID,
     newPlaylistData.Name,
     newPlaylistData.Creator,
     newPlaylistData.SongCount,
     newPlaylistData.Platform,
+    newPlaylistData.OriginalURL,
     newPlaylistData.Converted)
 
     if err != nil {
-        c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Error adding a new playlist"})
+        c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Error adding a new playlist (1)"})
     }
 
     for _, content := range newPlaylistData.Content {
-        _, err := db.Exec("INSERT INTO playlist_content (id, title, playlist_track_num, isrc, artist, album, album_id, explicit, converted_url, track_num) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        _, err := db.Exec("INSERT INTO playlist_content (id, key_id, title, playlist_track_num, isrc, artist, album, album_id, explicit, original_url, converted_url, confidence, track_num) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         content.ID,
+        content.KeyID,
         content.Title,
         content.PTrackNum,
         content.ISRC,
@@ -150,11 +162,13 @@ func postPlaylists(c *gin.Context) {
         content.Album,
         content.AlbumID,
         content.Explicit,
+        content.OriginalURL,
         content.ConvertURL,
+        content.Confidence,
         content.TrackNum)
 
         if err != nil {
-            c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Error adding a new playlist"})
+            c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Error adding a new playlist (2)"})
         }
     }
 

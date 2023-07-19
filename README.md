@@ -8,9 +8,9 @@ Tools you will need:
 - mysql
 - go
 
-_**Note:** Windows instructions not included.
+_**Note:** Windows instructions not included._
 
-The steps will be similar but these instructions are written with macOS and Linux in mind._
+_The steps will be similar but these instructions are written with macOS and Linux in mind._
 
 ### Install mysql
 Use your package manager to install the MySQL CLI.
@@ -68,6 +68,7 @@ CREATE TABLE playlists (
   creator    VARCHAR(255) NOT NULL,
   song_count INT  NOT NULL,
   platform   VARCHAR(255) NOT NULL,
+  original_url VARCHAR(255) NOT NULL,
   converted  BOOLEAN NOT NULL,
   PRIMARY KEY (`id`)
 );
@@ -75,15 +76,19 @@ CREATE TABLE playlists (
 DROP TABLE IF EXISTS playlist_content;
 CREATE TABLE playlist_content (
   id         VARCHAR(255) NOT NULL,
+  key_id     VARCHAR(255) NOT NULL,
   title      VARCHAR(255) NOT NULL,
-  playlist_track_num INT NOT NULL,
+  playlist_track_num  INT NOT NULL,
   isrc       VARCHAR(255) NOT NULL,
   artist     VARCHAR(255) NOT NULL,
   album      VARCHAR(255) NOT NULL,
   album_id   VARCHAR(255) NOT NULL,
   explicit   BOOLEAN NOT NULL,
+  original_url VARCHAR(255) NOT NULL,
   converted_url VARCHAR(255),
-  track_num  INT NOT NULL
+  confidence INT NOT NULL,
+  track_num  INT NOT NULL,
+  PRIMARY KEY (`key_id`)
 );
 ```
 If you are using the file sourcing method, enter the following command:
