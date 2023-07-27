@@ -1,5 +1,7 @@
 # polyphonic-backend
-Backend for [Polyphonic](https://github.com/dhruvweaver/Polyphonic) app, supplying playlist sharing capability.
+Backend for [Polyphonic](https://github.com/dhruvweaver/Polyphonic) app:
+- Middleman communation between app and Spotify's and Apple Music's servers so that rate limit is controlled
+- Supplies playlist sharing capability
 
 Project still in early stages, the setup instructions may change over time.
 
@@ -97,6 +99,21 @@ mysql> source /path/to/file.sql
 ```
 
 ### Run server
+**Docker**
+
+If you are using Docker to run the server, change the database IP address in main.go to "host.docker.internal"
+
+_Build:_
+```bash
+$ docker build -t polyphonic-backend .
+```
+_Run:_
+```bash
+$ docker run --network="host" --add-host host.docker.internal:127.0.0.1 polyphonic-backend
+```
+
+**Run natively**
+
 ***Install go***
 
 _macOS_
