@@ -14,13 +14,14 @@ import (
 
 /* -- song data structures -- */
 type SpotifySong struct {
-    Album       Album       `json:"album"`
-    Artists   []Artist      `json:"artists"`
-    Explicit    bool        `json:"explicit"`
-    ExternalIDs ExternalIDs `json:"external_ids"`
-    Name        string      `json:"name"`
-    TrackNumber int         `json:"track_number"`
-    URI         string      `json:"uri"`
+    Album        Album       `json:"album"`
+    Artists    []Artist      `json:"artists"`
+    Explicit     bool        `json:"explicit"`
+    ExternalIDs  ExternalIDs `json:"external_ids"`
+    ExternalURLs ExternalURLs `json:"external_urls"`
+    Name         string      `json:"name"`
+    TrackNumber  int         `json:"track_number"`
+    URI          string      `json:"uri"`
 }
 
 type Album struct {
@@ -86,6 +87,15 @@ type SpotifyArtist struct {
 type ProfileImage struct {
     URL string `json:"url"`
 }
+
+type SpotifyArtistSearch struct {
+    Artists Artists `json:"artists"`
+}
+
+type Artists struct {
+    Items []SpotifyArtist `json:"items"`
+}
+
 /* -- artist data structures -- */
 
 /* -- playlist data structures -- */
@@ -311,15 +321,7 @@ func getSpotifyArtistByID(id string, key string, spotifyArtist chan SpotifyArtis
     spotifyArtist <- responseObject
 }
 
-func getSpotifyArtistsBySearch(params string, key string, spotifyArtists chan []SpotifyArtist) {
-    type Artists struct {
-        Items []SpotifyArtist `json:"items"`
-    }
-
-    type SpotifyArtistSearch struct {
-        Artists Artists `json:"artists"`
-    }
-
+func getSpotifyArtistsBySearch(params string, key string, spotifyArtistSearch chan SpotifyArtistSearch) {
     url := "https://api.spotify.com/v1/search?q=" + params
     fmt.Println(url)
     authVal := "Bearer " + key
@@ -351,7 +353,7 @@ func getSpotifyArtistsBySearch(params string, key string, spotifyArtists chan []
 
     json.Unmarshal(responseData, &responseObject)
 
-    spotifyArtists <- responseObject.Artists.Items
+    spotifyArtistSearch <- responseObject
 }
 
 func getSpotifyPlaylistByID(id string, key string, spotifyPlaylist chan SpotifyPlaylist) {

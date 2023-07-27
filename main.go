@@ -182,6 +182,11 @@ func postPlaylists(c *gin.Context) {
     c.IndentedJSON(http.StatusCreated, newPlaylistData)
 }
 
+/*
+    checkSpotifyAuth checks to see if the Spotify authorization code is within
+    30 seconds of expiring. If it is going to expire, it will get a new code.
+    When a new code is received, the expiration date is updated.
+*/
 func checkSpotifyAuth() {
     var expIn int64
 
@@ -199,8 +204,11 @@ func checkSpotifyAuth() {
     // fmt.Println(authSpotifyKey)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetSpotifySongByID gets a Spotify song's data from the Spotify
+    API using the song's ID and then responds with only the required data
+    for translation.
+*/
 func polyphonicGetSpotifySongByID(c *gin.Context) {
     id := c.Param("id")
 
@@ -218,8 +226,13 @@ func polyphonicGetSpotifySongByID(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, spotifySong)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetSpotifySongByID gets a Spotify song's data from the Spotify
+    API using search terms and then responds with only the required data
+    for translation.
+
+    Format of terms: "track:[track title] artist:[artist name]"
+*/
 func polyphonicGetSpotifySongsBySearch(c *gin.Context) {
     terms := c.Param("terms")
 
@@ -238,8 +251,11 @@ func polyphonicGetSpotifySongsBySearch(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, spotifySongSearch)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetSpotifyAlbumByID gets a Spotify album's data from the Spotify
+    API using the album's ID and then responds with only the required data
+    for translation.
+*/
 func polyphonicGetSpotifyAlbumByID(c *gin.Context) {
     id := c.Param("id")
 
@@ -256,8 +272,11 @@ func polyphonicGetSpotifyAlbumByID(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, spotifyAlbum)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetSpotifyArtistByID gets a Spotify artist's data from the Spotify
+    API using the artist's ID and then responds with only the required data
+    for translation.
+*/
 func polyphonicGetSpotifyArtistByID(c *gin.Context) {
     id := c.Param("id")
 
@@ -274,28 +293,36 @@ func polyphonicGetSpotifyArtistByID(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, spotifyArtist)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetSpotifyArtistBySearch gets a Spotify artist's data from the Spotify
+    API using search terms and then responds with only the required data
+    for translation.
+
+    Format of terms: "[artist name]"
+*/
 func polyphonicGetSpotifyArtistBySearch(c *gin.Context) {
     terms := c.Param("terms")
 
     checkSpotifyAuth()
 
     /* Get artist by search */
-    spotifyArtistsChan := make(chan []SpotifyArtist)
+    spotifyArtistSearchChan := make(chan SpotifyArtistSearch)
 
-    params := terms + "&type=artist"
-    go getSpotifyArtistsBySearch(params, authSpotifyKey, spotifyArtistsChan)
+    params := url.QueryEscape(terms) + "&type=artist"
+    go getSpotifyArtistsBySearch(params, authSpotifyKey, spotifyArtistSearchChan)
 
-    spotifyArtists := <- spotifyArtistsChan
-    fmt.Println("First artist name:", spotifyArtists[0].Name)
+    spotifyArtistSearch := <- spotifyArtistSearchChan
+    fmt.Println("First artist name:", spotifyArtistSearch.Artists.Items[0].Name)
     /* Get artist by search */
 
-    c.IndentedJSON(http.StatusOK, spotifyArtists)
+    c.IndentedJSON(http.StatusOK, spotifyArtistSearch)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetSpotifyPlaylistByID gets a Spotify playlist's data from the
+    Spotify API using the playlist's ID and then responds with only the required
+    data for translation.
+*/
 func polyphonicGetSpotifyPlaylistByID(c *gin.Context) {
     id := c.Param("id")
 
@@ -339,8 +366,11 @@ func polyphonicGetSpotifyPlaylistByID(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, spotifyPlayist)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetAppleSongByID gets an Apple Music song's data from the Apple
+    Music API using the song's ID and then responds with only the required data
+    for translation.
+*/
 func polyphonicGetAppleSongByID(c *gin.Context) {
     id := c.Param("id")
 
@@ -355,8 +385,13 @@ func polyphonicGetAppleSongByID(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, appleMusicSong)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetAppleSongsBySearch gets an Apple Music song's data from the
+    Apple Music API using search terms and then responds with only the required
+    data for translation.
+
+    Format of terms: "[track title] [artist name]"
+*/
 func polyphonicGetAppleSongsBySearch(c *gin.Context) {
     terms := c.Param("terms")
 
@@ -372,8 +407,11 @@ func polyphonicGetAppleSongsBySearch(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, appleMusicSongSearch)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetAppleAlbumByID gets an Apple Music album's data from the Apple
+    Music API using the album's ID and then responds with only the required data
+    for translation.
+*/
 func polyphonicGetAppleAlbumByID(c *gin.Context) {
     id := c.Param("id")
 
@@ -388,8 +426,11 @@ func polyphonicGetAppleAlbumByID(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, appleMusicAlbum)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetAppleArtistByID gets an Apple Music artist's data from the
+    Apple Music API using the artist's ID and then responds with only the
+    required data for translation.
+*/
 func polyphonicGetAppleArtistByID(c *gin.Context) {
     id := c.Param("id")
 
@@ -404,28 +445,34 @@ func polyphonicGetAppleArtistByID(c *gin.Context) {
     c.IndentedJSON(http.StatusOK, appleMusicArtist)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetAppleArtistBySearch gets an Apple Music artist's data from the
+    Apple Music API using search terms and then responds with only the required
+    data for translation.
+
+    Format of terms: "[artist name]"
+*/
 func polyphonicGetAppleArtistBySearch(c *gin.Context) {
     terms := c.Param("terms")
 
-    checkSpotifyAuth()
-
     /* Get artist by search */
-    spotifyArtistsChan := make(chan []SpotifyArtist)
+    appleMusicArtistSearchChan := make(chan AppleMusicArtistSearch)
 
-    params := terms + "&type=artist"
-    go getSpotifyArtistsBySearch(params, authSpotifyKey, spotifyArtistsChan)
+    params := url.QueryEscape(terms)
+    go getAppleMusicArtistsBySearch(params, appleMusicKey, appleMusicArtistSearchChan)
 
-    spotifyArtists := <- spotifyArtistsChan
-    fmt.Println("First artist name:", spotifyArtists[0].Name)
-    /* Get artist by search */
+    appleMusicArtistSearch := <- appleMusicArtistSearchChan
+    fmt.Println("First artist name:", appleMusicArtistSearch.Results.Artists.Data[0].Attributes.Name)
+    /* Get Artist by search */
 
-    c.IndentedJSON(http.StatusOK, spotifyArtists)
+    c.IndentedJSON(http.StatusOK, appleMusicArtistSearch)
 }
 
-// getPlaylistByID locates the playlist whose ID value matches the id
-// parameter sent by the client, then returns that playlist as a response.
+/*
+    polyphonicGetApplePlaylistByID gets an Apple Music playlist's data from the
+    Apple Music API using the playlist's ID and then responds with only the
+    required data for translation.
+*/
 func polyphonicGetApplePlaylistByID(c *gin.Context) {
     id := c.Param("id")
 

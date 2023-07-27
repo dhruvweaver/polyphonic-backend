@@ -108,6 +108,19 @@ type AppleMusicArtistAttributes struct {
     Name    string  `json:"name"`
     Artwork Artwork `json:"artwork"`
 }
+
+type AppleMusicArtistSearch struct {
+    Results AppleMusicArtistSearchResults `json:"results"`
+}
+
+type AppleMusicArtistSearchResults struct {
+    Artists AppleMusicArtistSearchArtists `json:"artists"`
+}
+
+type AppleMusicArtistSearchArtists struct {
+    Data []AppleMusicArtistData `json:"data"`
+}
+
 /* -- artist data structures -- */
 
 /* -- playlist data structures -- */
@@ -277,19 +290,7 @@ func getAppleMusicArtistByID(id string, key string, appleMusicArtist chan AppleM
     appleMusicArtist <- responseObject
 }
 
-func getAppleMusicArtistsBySearch(params string, key string, appleMusicArtists chan AppleMusicArtist) {
-    type AppleMusicArtistSearchArtists struct {
-        Data []AppleMusicArtistData `json:"data"`
-    }
-
-    type AppleMusicArtistSearchResults struct {
-        Artists AppleMusicArtistSearchArtists `json:"artists"`
-    }
-
-    type AppleMusicArtistSearch struct {
-        Results AppleMusicArtistSearchResults `json:"results"`
-    }
-
+func getAppleMusicArtistsBySearch(params string, key string, appleMusicArtistSearch chan AppleMusicArtistSearch) {
     url := "https://api.music.apple.com/v1/catalog/us/search?types=artists&term=" + params
     fmt.Println(url)
     authVal := "Bearer " + key
@@ -320,7 +321,7 @@ func getAppleMusicArtistsBySearch(params string, key string, appleMusicArtists c
 
     json.Unmarshal(responseData, &responseObject)
 
-    appleMusicArtists <- AppleMusicArtist(responseObject.Results.Artists)
+    appleMusicArtistSearch <- responseObject
 }
 
 func getAppleMusicPlaylistByID(id string, key string, appleMusicPlaylist chan AppleMusicPlaylist) {
