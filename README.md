@@ -6,6 +6,15 @@ Backend for [Polyphonic](https://github.com/dhruvweaver/Polyphonic) app:
 Project still in early stages, the setup instructions may change over time.
 
 ## Setup Instructions
+***Important:***
+**You must add the following variables to your environment:**
+
+```zsh
+export SPOTIFY_CLIENT_ID=spotify-client-id
+export SPOTIFY_CLIENT_SECRET=spotify-client-secret
+export APPLE_MUSIC_KEY=apple-music-api-key
+```
+
 Tools you will need:
 - mysql
 - go

@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
-    "time"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
@@ -225,16 +226,16 @@ func polyphonicGetSpotifySongsBySearch(c *gin.Context) {
     checkSpotifyAuth()
 
     /* Get song by search */
-    spotifySongsChan := make(chan []SpotifySong)
+    spotifySongSearchChan := make(chan SpotifySongSearch)
 
-    params := terms + "&type=track"
-    go getSpotifySongsBySearch(params, authSpotifyKey, spotifySongsChan)
+    params := url.QueryEscape(terms) + "&type=track"
+    go getSpotifySongsBySearch(params, authSpotifyKey, spotifySongSearchChan)
 
-    spotifySongs := <- spotifySongsChan
-    fmt.Println("First song title:", spotifySongs[0].Name, "by", spotifySongs[0].Artists[0].Name)
+    spotifySongSearch := <- spotifySongSearchChan
+    fmt.Println("First song title:", spotifySongSearch.Tracks.Items[0].Name, "by", spotifySongSearch.Tracks.Items[0].Artists[0])
     /* Get song by search */
 
-    c.IndentedJSON(http.StatusOK, spotifySongs)
+    c.IndentedJSON(http.StatusOK, spotifySongSearch)
 }
 
 // getPlaylistByID locates the playlist whose ID value matches the id
@@ -360,16 +361,15 @@ func polyphonicGetAppleSongsBySearch(c *gin.Context) {
     terms := c.Param("terms")
 
     /* Get song by search */
-    appleMusicSongsChan := make(chan AppleMusicSong)
+    appleMusicSongSearchChan := make(chan AppleMusicSongSearch)
 
-    go getAppleMusicSongsBySearch(terms, appleMusicKey, appleMusicSongsChan)
+    go getAppleMusicSongsBySearch(terms, appleMusicKey, appleMusicSongSearchChan)
 
-    appleMusicSongs := <- appleMusicSongsChan
-    fmt.Println("First Song title:", appleMusicSongs.Data[0].Attributes.Name, "by", appleMusicSongs.Data[0].Attributes.ArtistName)
-    fmt.Println("Second Song title:", appleMusicSongs.Data[1].Attributes.Name, "by", appleMusicSongs.Data[1].Attributes.ArtistName)
+    appleMusicSongSearch := <- appleMusicSongSearchChan
+    fmt.Println("First Song title:", appleMusicSongSearch.Results.Songs.Data[0].Attributes.Name, "by", appleMusicSongSearch.Results.Songs.Data[0].Attributes.ArtistName)
     /* Get song by search */
 
-    c.IndentedJSON(http.StatusOK, appleMusicSongs)
+    c.IndentedJSON(http.StatusOK, appleMusicSongSearch)
 }
 
 // getPlaylistByID locates the playlist whose ID value matches the id

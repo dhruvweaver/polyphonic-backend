@@ -46,6 +46,15 @@ type AppleMusicAlbumData struct {
 type RelationshipsData struct {
     ID string `json:"id"`
 }
+
+type AppleMusicSongSearch struct {
+    Results AppleMusicSearchResults `json:"results"`
+}
+
+type AppleMusicSearchResults struct {
+    Songs AppleMusicSong `json:"songs"`
+}
+
 /* -- song data structures -- */
 
 /* -- album data structures -- */
@@ -165,15 +174,7 @@ func getAppleMusicSongByID(id string, key string, appleMusicSong chan AppleMusic
     appleMusicSong <- responseObject
 }
 
-func getAppleMusicSongsBySearch(params string, key string, appleMusicSongs chan AppleMusicSong) {
-    type AppleMusicSearchResults struct {
-        Songs AppleMusicSong `json:"songs"`
-    }
-
-    type AppleMusicSongSearch struct {
-        Results AppleMusicSearchResults `json:"results"`
-    }
-
+func getAppleMusicSongsBySearch(params string, key string, appleMusicSongSearch chan AppleMusicSongSearch) {
     url := "https://api.music.apple.com/v1/catalog/us/search?types=songs&term=" + params
     fmt.Println(url)
     authVal := "Bearer " + key
@@ -204,7 +205,7 @@ func getAppleMusicSongsBySearch(params string, key string, appleMusicSongs chan 
 
     json.Unmarshal(responseData, &responseObject)
 
-    appleMusicSongs <- responseObject.Results.Songs
+    appleMusicSongSearch <- responseObject
 }
 
 func getAppleMusicAlbumByID(id string, key string, appleMusicAlbum chan AppleMusicAlbum) {

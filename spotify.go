@@ -40,6 +40,15 @@ type Artist struct {
 type ExternalIDs struct {
     ISRC string `json:"isrc"`
 }
+
+type SpotifySongSearch struct {
+    Tracks SpotifySongSearchTracks `json:"tracks"`
+}
+
+type SpotifySongSearchTracks struct {
+    Items []SpotifySong `json:"items"`
+}
+
 /* -- song data structures -- */
 
 /* -- album data structures -- */
@@ -197,15 +206,7 @@ func getSpotifySongByID(id string, key string, spotifySong chan SpotifySong) {
     spotifySong <- responseObject
 }
 
-func getSpotifySongsBySearch(params string, key string, spotifySongs chan []SpotifySong) {
-    type Tracks struct {
-        Items []SpotifySong `json:"items"`
-    }
-
-    type SpotifySongSearch struct {
-        Tracks Tracks `json:"tracks"`
-    }
-
+func getSpotifySongsBySearch(params string, key string, spotifySongSearch chan SpotifySongSearch) {
     url := "https://api.spotify.com/v1/search?q=" + params
     fmt.Println(url)
     authVal := "Bearer " + key
@@ -237,7 +238,8 @@ func getSpotifySongsBySearch(params string, key string, spotifySongs chan []Spot
 
     json.Unmarshal(responseData, &responseObject)
 
-    spotifySongs <- responseObject.Tracks.Items
+    fmt.Println(responseObject)
+    spotifySongSearch <- responseObject
 }
 
 func getSpotifyAlbumByID(id string, key string, spotifyAlbum chan SpotifyAlbum) {
