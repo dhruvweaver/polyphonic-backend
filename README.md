@@ -15,13 +15,29 @@ export SPOTIFY_CLIENT_SECRET=spotify-client-secret
 export APPLE_MUSIC_KEY=apple-music-api-key
 ```
 
-Tools you will need:
+_Optional if you want to use an SSL key:_
+
+```zsh
+export POLYPHONIC_SSL_CERT_PATH=/path/to/cert.pem
+export POLYPHONIC_SSL_KEY_PATH=/path/to/key.pem
+```
+
+If you aren't using SSL, change the following line (from main.go):
+```
+router.RunTLS("0.0.0.0:7659", certPath, keyPath)
+```
+to:
+```
+router.Run("0.0.0.0L7659")
+```
+
+### Tools you will need:
 - mysql
 - go
 
 _**Note:** Windows instructions not included._
 
-_The steps will be similar but these instructions are written with macOS and Linux in mind._
+_The steps will likely be similar but these instructions are written with macOS and Linux in mind._
 
 ### Install mysql
 Use your package manager to install the MySQL CLI.
