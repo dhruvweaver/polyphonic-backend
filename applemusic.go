@@ -8,7 +8,10 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 )
+
+var wait bool = false
 
 /* -- song data structures -- */
 type AppleMusicSong struct {
@@ -153,7 +156,21 @@ type AppleMusicPlaylistTracksData struct {
 }
 /* -- playlist data structures -- */
 
+/*
+    Checks to see if there is a wait time to be served b/c of rate limiting
+*/
+func appleMusicWaitIfLimited() {
+    if wait {
+        fmt.Println("Retrying after:", waitTimeSec, "seconds")
+        time.Sleep(5 * time.Second)
+
+        wait = false
+    }
+}
+
 func getAppleMusicSongByID(id string, key string, appleMusicSong chan AppleMusicSong) {
+    appleMusicWaitIfLimited()
+
     url := "https://api.music.apple.com/v1/catalog/us/songs/" + id
     authVal := "Bearer " + key
 
@@ -167,7 +184,7 @@ func getAppleMusicSongByID(id string, key string, appleMusicSong chan AppleMusic
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        wait = true
     }
 
     if err != nil {
@@ -188,6 +205,8 @@ func getAppleMusicSongByID(id string, key string, appleMusicSong chan AppleMusic
 }
 
 func getAppleMusicSongsBySearch(params string, key string, appleMusicSongSearch chan AppleMusicSongSearch) {
+    appleMusicWaitIfLimited()
+
     url := "https://api.music.apple.com/v1/catalog/us/search?types=songs&term=" + params
     fmt.Println(url)
     authVal := "Bearer " + key
@@ -202,6 +221,7 @@ func getAppleMusicSongsBySearch(params string, key string, appleMusicSongSearch 
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
+        wait = true
     }
 
     if err != nil {
@@ -222,6 +242,8 @@ func getAppleMusicSongsBySearch(params string, key string, appleMusicSongSearch 
 }
 
 func getAppleMusicAlbumByID(id string, key string, appleMusicAlbum chan AppleMusicAlbum) {
+    appleMusicWaitIfLimited()
+
     url := "https://api.music.apple.com/v1/catalog/us/albums/" + id
     authVal := "Bearer " + key
 
@@ -235,7 +257,7 @@ func getAppleMusicAlbumByID(id string, key string, appleMusicAlbum chan AppleMus
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        wait = true
     }
 
     if err != nil {
@@ -256,6 +278,8 @@ func getAppleMusicAlbumByID(id string, key string, appleMusicAlbum chan AppleMus
 }
 
 func getAppleMusicArtistByID(id string, key string, appleMusicArtist chan AppleMusicArtist) {
+    appleMusicWaitIfLimited()
+
     url := "https://api.music.apple.com/v1/catalog/us/artists/" + id
     authVal := "Bearer " + key
 
@@ -269,7 +293,7 @@ func getAppleMusicArtistByID(id string, key string, appleMusicArtist chan AppleM
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        wait = true
     }
 
 
@@ -291,6 +315,8 @@ func getAppleMusicArtistByID(id string, key string, appleMusicArtist chan AppleM
 }
 
 func getAppleMusicArtistsBySearch(params string, key string, appleMusicArtistSearch chan AppleMusicArtistSearch) {
+    appleMusicWaitIfLimited()
+
     url := "https://api.music.apple.com/v1/catalog/us/search?types=artists&term=" + params
     fmt.Println(url)
     authVal := "Bearer " + key
@@ -305,6 +331,7 @@ func getAppleMusicArtistsBySearch(params string, key string, appleMusicArtistSea
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
+        wait = true
     }
 
     if err != nil {
@@ -325,6 +352,8 @@ func getAppleMusicArtistsBySearch(params string, key string, appleMusicArtistSea
 }
 
 func getAppleMusicPlaylistByID(id string, key string, appleMusicPlaylist chan AppleMusicPlaylist) {
+    appleMusicWaitIfLimited()
+
     url := "https://api.music.apple.com/v1/catalog/us/playlists/" + id
     authVal := "Bearer " + key
 
@@ -338,6 +367,7 @@ func getAppleMusicPlaylistByID(id string, key string, appleMusicPlaylist chan Ap
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
+        wait = true
     }
 
     if err != nil {
@@ -359,6 +389,8 @@ func getAppleMusicPlaylistByID(id string, key string, appleMusicPlaylist chan Ap
 
 func getNextAppleMusicPlaylist(nextURL string, key string,
     nextAppleMusicPlaylistTracks chan AppleMusicPlaylistTracks) {
+    appleMusicWaitIfLimited()
+
     url := "https://api.music.apple.com" + nextURL
 
     authVal := "Bearer " + key
@@ -373,7 +405,7 @@ func getNextAppleMusicPlaylist(nextURL string, key string,
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        wait = true
     }
 
     if err != nil {

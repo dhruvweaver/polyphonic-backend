@@ -201,7 +201,8 @@ func checkSpotifyAuth() {
         expIn = <- exp
         authSpotifyExp = time.Now().Unix() + expIn
     }
-    // fmt.Println(authSpotifyKey)
+
+    fmt.Println(authSpotifyKey)
 }
 
 /*

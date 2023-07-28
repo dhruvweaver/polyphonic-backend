@@ -1,6 +1,6 @@
 # polyphonic-backend
 Backend for [Polyphonic](https://github.com/dhruvweaver/Polyphonic) app:
-- Middleman communation between app and Spotify's and Apple Music's servers so that rate limit is controlled
+- Provides communation between app and Spotify's and Apple Music's servers so that rate limit is controlled
 - Supplies playlist sharing capability
 
 Project still in early stages, the setup instructions may change over time.
@@ -28,7 +28,7 @@ router.RunTLS("0.0.0.0:7659", certPath, keyPath)
 ```
 to:
 ```
-router.Run("0.0.0.0L7659")
+router.Run("0.0.0.0:7659")
 ```
 
 ### Tools you will need:

@@ -9,8 +9,13 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 )
+
+// used to avoid going over rate limit
+var waitTimeSec int = 0
 
 /* -- song data structures -- */
 type SpotifySong struct {
@@ -130,9 +135,25 @@ type ExternalURLs struct {
 }
 /* -- playlist data structures -- */
 
+
+/*
+    Checks to see if there is a wait time to be served b/c of rate limiting
+*/
+func spotifyWaitIfLimited() {
+    if waitTimeSec > 0 {
+        fmt.Println("Retrying after:", waitTimeSec, "seconds")
+        waitDur := time.Duration(waitTimeSec)
+        time.Sleep(waitDur * time.Second)
+
+        waitTimeSec = 0
+    }
+}
+
 // gets Spotify auth key from local environment variables
 // and returns the key and expiration time (from now)
 func getSpotifyAuthKey(key chan string, exp chan int64) {
+    spotifyWaitIfLimited()
+
     type Response struct {
         AccessToken string `json:"access_token"`
         ExpiresIn   int64  `json:"expires_in"`
@@ -161,7 +182,9 @@ func getSpotifyAuthKey(key chan string, exp chan int64) {
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        retryAfter := response.Header.Values("retry-after")[0]
+        retryInt, _ := strconv.Atoi(retryAfter)
+        waitTimeSec = retryInt
     }
 
     if err != nil {
@@ -183,6 +206,8 @@ func getSpotifyAuthKey(key chan string, exp chan int64) {
 }
 
 func getSpotifySongByID(id string, key string, spotifySong chan SpotifySong) {
+    spotifyWaitIfLimited()
+
     url := "https://api.spotify.com/v1/tracks/" + id
     authVal := "Bearer " + key
 
@@ -196,7 +221,9 @@ func getSpotifySongByID(id string, key string, spotifySong chan SpotifySong) {
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        retryAfter := response.Header.Values("retry-after")[0]
+        retryInt, _ := strconv.Atoi(retryAfter)
+        waitTimeSec = retryInt
     }
 
     if err != nil {
@@ -217,6 +244,8 @@ func getSpotifySongByID(id string, key string, spotifySong chan SpotifySong) {
 }
 
 func getSpotifySongsBySearch(params string, key string, spotifySongSearch chan SpotifySongSearch) {
+    spotifyWaitIfLimited()
+
     url := "https://api.spotify.com/v1/search?q=" + params
     fmt.Println(url)
     authVal := "Bearer " + key
@@ -231,7 +260,9 @@ func getSpotifySongsBySearch(params string, key string, spotifySongSearch chan S
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        retryAfter := response.Header.Values("retry-after")[0]
+        retryInt, _ := strconv.Atoi(retryAfter)
+        waitTimeSec = retryInt
     }
 
     if err != nil {
@@ -253,6 +284,8 @@ func getSpotifySongsBySearch(params string, key string, spotifySongSearch chan S
 }
 
 func getSpotifyAlbumByID(id string, key string, spotifyAlbum chan SpotifyAlbum) {
+    spotifyWaitIfLimited()
+
     url := "https://api.spotify.com/v1/albums/" + id
     authVal := "Bearer " + key
 
@@ -266,7 +299,9 @@ func getSpotifyAlbumByID(id string, key string, spotifyAlbum chan SpotifyAlbum) 
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        retryAfter := response.Header.Values("retry-after")[0]
+        retryInt, _ := strconv.Atoi(retryAfter)
+        waitTimeSec = retryInt
     }
 
     if err != nil {
@@ -287,6 +322,8 @@ func getSpotifyAlbumByID(id string, key string, spotifyAlbum chan SpotifyAlbum) 
 }
 
 func getSpotifyArtistByID(id string, key string, spotifyArtist chan SpotifyArtist) {
+    spotifyWaitIfLimited()
+
     url := "https://api.spotify.com/v1/artists/" + id
     authVal := "Bearer " + key
 
@@ -300,9 +337,10 @@ func getSpotifyArtistByID(id string, key string, spotifyArtist chan SpotifyArtis
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        retryAfter := response.Header.Values("retry-after")[0]
+        retryInt, _ := strconv.Atoi(retryAfter)
+        waitTimeSec = retryInt
     }
-
 
     if err != nil {
         fmt.Print(err.Error())
@@ -322,6 +360,8 @@ func getSpotifyArtistByID(id string, key string, spotifyArtist chan SpotifyArtis
 }
 
 func getSpotifyArtistsBySearch(params string, key string, spotifyArtistSearch chan SpotifyArtistSearch) {
+    spotifyWaitIfLimited()
+
     url := "https://api.spotify.com/v1/search?q=" + params
     fmt.Println(url)
     authVal := "Bearer " + key
@@ -336,7 +376,9 @@ func getSpotifyArtistsBySearch(params string, key string, spotifyArtistSearch ch
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        retryAfter := response.Header.Values("retry-after")[0]
+        retryInt, _ := strconv.Atoi(retryAfter)
+        waitTimeSec = retryInt
     }
 
     if err != nil {
@@ -357,6 +399,8 @@ func getSpotifyArtistsBySearch(params string, key string, spotifyArtistSearch ch
 }
 
 func getSpotifyPlaylistByID(id string, key string, spotifyPlaylist chan SpotifyPlaylist) {
+    spotifyWaitIfLimited()
+
     url := "https://api.spotify.com/v1/playlists/" + id
     authVal := "Bearer " + key
 
@@ -370,7 +414,9 @@ func getSpotifyPlaylistByID(id string, key string, spotifyPlaylist chan SpotifyP
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        retryAfter := response.Header.Values("retry-after")[0]
+        retryInt, _ := strconv.Atoi(retryAfter)
+        waitTimeSec = retryInt
     }
 
     if err != nil {
@@ -391,6 +437,8 @@ func getSpotifyPlaylistByID(id string, key string, spotifyPlaylist chan SpotifyP
 }
 
 func getNextSpotifyPlaylist(nextURL string, key string, nextSpotifyPlaylistTracks chan Tracks) {
+    spotifyWaitIfLimited()
+
     authVal := "Bearer " + key
 
     client := &http.Client{}
@@ -403,7 +451,9 @@ func getNextSpotifyPlaylist(nextURL string, key string, nextSpotifyPlaylistTrack
 
     if response.StatusCode == http.StatusTooManyRequests {
         fmt.Println("Too many requests")
-        fmt.Println("Retry after:", response.Header.Values("retry-after"), "seconds")
+        retryAfter := response.Header.Values("retry-after")[0]
+        retryInt, _ := strconv.Atoi(retryAfter)
+        waitTimeSec = retryInt
     }
 
     if err != nil {
