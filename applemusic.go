@@ -161,8 +161,9 @@ type AppleMusicPlaylistTracksData struct {
 */
 func appleMusicWaitIfLimited() {
     if wait {
-        fmt.Println("Retrying after:", waitTimeSec, "seconds")
-        time.Sleep(5 * time.Second)
+        appleWaitTime := 5
+        fmt.Println("Apple: Retrying after:", appleWaitTime, "seconds")
+        time.Sleep(time.Duration(appleWaitTime) * time.Second)
 
         wait = false
     }
@@ -182,9 +183,19 @@ func getAppleMusicSongByID(id string, key string, appleMusicSong chan AppleMusic
 
     response, err := client.Do(request)
 
-    if response.StatusCode == http.StatusTooManyRequests {
-        fmt.Println("Too many requests")
-        wait = true
+    // try request again after a delay if there is a 429 error
+    attempt := 0
+    for attempt < 2 {
+        if response.StatusCode == http.StatusTooManyRequests {
+            fmt.Println("Too many requests")
+            wait = true
+
+            appleMusicWaitIfLimited()
+            attempt++
+            response, err = client.Do(request)
+        }
+
+        attempt = 2
     }
 
     if err != nil {
@@ -219,9 +230,19 @@ func getAppleMusicSongsBySearch(params string, key string, appleMusicSongSearch 
 
     response, err := client.Do(request)
 
-    if response.StatusCode == http.StatusTooManyRequests {
-        fmt.Println("Too many requests")
-        wait = true
+    // try request again after a delay if there is a 429 error
+    attempt := 0
+    for attempt < 2 {
+        if response.StatusCode == http.StatusTooManyRequests {
+            fmt.Println("Too many requests")
+            wait = true
+
+            appleMusicWaitIfLimited()
+            attempt++
+            response, err = client.Do(request)
+        }
+
+        attempt = 2
     }
 
     if err != nil {
@@ -255,9 +276,19 @@ func getAppleMusicAlbumByID(id string, key string, appleMusicAlbum chan AppleMus
 
     response, err := client.Do(request)
 
-    if response.StatusCode == http.StatusTooManyRequests {
-        fmt.Println("Too many requests")
-        wait = true
+    // try request again after a delay if there is a 429 error
+    attempt := 0
+    for attempt < 2 {
+        if response.StatusCode == http.StatusTooManyRequests {
+            fmt.Println("Too many requests")
+            wait = true
+
+            appleMusicWaitIfLimited()
+            attempt++
+            response, err = client.Do(request)
+        }
+
+        attempt = 2
     }
 
     if err != nil {
@@ -291,11 +322,20 @@ func getAppleMusicArtistByID(id string, key string, appleMusicArtist chan AppleM
 
     response, err := client.Do(request)
 
-    if response.StatusCode == http.StatusTooManyRequests {
-        fmt.Println("Too many requests")
-        wait = true
-    }
+    // try request again after a delay if there is a 429 error
+    attempt := 0
+    for attempt < 2 {
+        if response.StatusCode == http.StatusTooManyRequests {
+            fmt.Println("Too many requests")
+            wait = true
 
+            appleMusicWaitIfLimited()
+            attempt++
+            response, err = client.Do(request)
+        }
+
+        attempt = 2
+    }
 
     if err != nil {
         fmt.Print(err.Error())
@@ -329,9 +369,19 @@ func getAppleMusicArtistsBySearch(params string, key string, appleMusicArtistSea
 
     response, err := client.Do(request)
 
-    if response.StatusCode == http.StatusTooManyRequests {
-        fmt.Println("Too many requests")
-        wait = true
+    // try request again after a delay if there is a 429 error
+    attempt := 0
+    for attempt < 2 {
+        if response.StatusCode == http.StatusTooManyRequests {
+            fmt.Println("Too many requests")
+            wait = true
+
+            appleMusicWaitIfLimited()
+            attempt++
+            response, err = client.Do(request)
+        }
+
+        attempt = 2
     }
 
     if err != nil {
@@ -365,9 +415,19 @@ func getAppleMusicPlaylistByID(id string, key string, appleMusicPlaylist chan Ap
 
     response, err := client.Do(request)
 
-    if response.StatusCode == http.StatusTooManyRequests {
-        fmt.Println("Too many requests")
-        wait = true
+    // try request again after a delay if there is a 429 error
+    attempt := 0
+    for attempt < 2 {
+        if response.StatusCode == http.StatusTooManyRequests {
+            fmt.Println("Too many requests")
+            wait = true
+
+            appleMusicWaitIfLimited()
+            attempt++
+            response, err = client.Do(request)
+        }
+
+        attempt = 2
     }
 
     if err != nil {
@@ -403,9 +463,19 @@ func getNextAppleMusicPlaylist(nextURL string, key string,
 
     response, err := client.Do(request)
 
-    if response.StatusCode == http.StatusTooManyRequests {
-        fmt.Println("Too many requests")
-        wait = true
+    // try request again after a delay if there is a 429 error
+    attempt := 0
+    for attempt < 2 {
+        if response.StatusCode == http.StatusTooManyRequests {
+            fmt.Println("Too many requests")
+            wait = true
+
+            appleMusicWaitIfLimited()
+            attempt++
+            response, err = client.Do(request)
+        }
+
+        attempt = 2
     }
 
     if err != nil {

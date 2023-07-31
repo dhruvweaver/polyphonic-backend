@@ -22,13 +22,15 @@ export POLYPHONIC_SSL_CERT_PATH=/path/to/cert.pem
 export POLYPHONIC_SSL_KEY_PATH=/path/to/key.pem
 ```
 
-If you aren't using SSL, change the following line (from main.go):
+If you are using SSL, change the following line (from main.go):
 ```
-router.RunTLS("0.0.0.0:7659", certPath, keyPath)
+router.Run("0.0.0.0:7659")
 ```
 to:
 ```
-router.Run("0.0.0.0:7659")
+certPath := os.Getenv("POLYPHONIC_SSL_CERT_PATH")
+keyPath := os.Getenv("POLYPHONIC_SSL_KEY_PATH")
+router.RunTLS("0.0.0.0:7659", certPath, keyPath)
 ```
 
 ### Tools you will need:

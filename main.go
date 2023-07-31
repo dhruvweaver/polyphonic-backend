@@ -202,7 +202,7 @@ func checkSpotifyAuth() {
         authSpotifyExp = time.Now().Unix() + expIn
     }
 
-    fmt.Println(authSpotifyKey)
+    // fmt.Println(authSpotifyKey)
 }
 
 /*
@@ -568,8 +568,10 @@ func main() {
     router.GET("/apple/playlist/id/:id",      polyphonicGetApplePlaylistByID)
     /* Apple Music API interfacing */
 
-    certPath := os.Getenv("POLYPHONIC_SSL_CERT_PATH")
-    keyPath := os.Getenv("POLYPHONIC_SSL_KEY_PATH")
-    router.RunTLS("0.0.0.0:7659", certPath, keyPath)
+    // certPath := os.Getenv("POLYPHONIC_SSL_CERT_PATH")
+    // keyPath := os.Getenv("POLYPHONIC_SSL_KEY_PATH")
+    // router.RunTLS("0.0.0.0:7659", certPath, keyPath)
+
+    router.Run("0.0.0.0:7659")
 }
 
