@@ -18,7 +18,15 @@ var db *sql.DB
 var authSpotifyExp = time.Now().Unix() - 10 // initialize spotify auth time to be something that must be replaced
 var authSpotifyKey string
 
+var sWait = SpotifyWaitContainer {
+    waitTime: 0,
+}
+
 var appleMusicKey = os.Getenv("APPLE_MUSIC_KEY")
+
+var aWait = AppleWaitContainer {
+    wait: false,
+}
 
 type playlist struct {
     ID          string `json:"id"`
@@ -195,7 +203,7 @@ func checkSpotifyAuth() {
         fmt.Println("Getting another API key from Spotify")
         key := make(chan string)
         exp := make(chan int64)
-        go getSpotifyAuthKey(key, exp)
+        go getSpotifyAuthKey(&sWait, key, exp)
 
         authSpotifyKey = <- key
         expIn = <- exp
@@ -217,7 +225,7 @@ func polyphonicGetSpotifySongByID(c *gin.Context) {
 
     /* Get song by ID */
     spotifySongChan := make(chan SpotifySong)
-    go getSpotifySongByID(id, authSpotifyKey, spotifySongChan)
+    go getSpotifySongByID(&sWait, id, authSpotifyKey, spotifySongChan)
 
     spotifySong := <- spotifySongChan
     fmt.Println(spotifySong)
@@ -243,7 +251,7 @@ func polyphonicGetSpotifySongsBySearch(c *gin.Context) {
     spotifySongSearchChan := make(chan SpotifySongSearch)
 
     params := url.QueryEscape(terms) + "&type=track"
-    go getSpotifySongsBySearch(params, authSpotifyKey, spotifySongSearchChan)
+    go getSpotifySongsBySearch(&sWait, params, authSpotifyKey, spotifySongSearchChan)
 
     spotifySongSearch := <- spotifySongSearchChan
     fmt.Println("First song title:", spotifySongSearch.Tracks.Items[0].Name, "by", spotifySongSearch.Tracks.Items[0].Artists[0])
@@ -264,7 +272,7 @@ func polyphonicGetSpotifyAlbumByID(c *gin.Context) {
 
     /* Get album by ID */
     spotifyAlbumChan := make(chan SpotifyAlbum)
-    go getSpotifyAlbumByID(id, authSpotifyKey, spotifyAlbumChan)
+    go getSpotifyAlbumByID(&sWait, id, authSpotifyKey, spotifyAlbumChan)
 
     spotifyAlbum := <- spotifyAlbumChan
     fmt.Println("Album title:", spotifyAlbum.Name, "by", spotifyAlbum.Artists[0].Name)
@@ -285,7 +293,7 @@ func polyphonicGetSpotifyArtistByID(c *gin.Context) {
 
     /* Get artist by ID */
     spotifyArtistChan := make(chan SpotifyArtist)
-    go getSpotifyArtistByID(id, authSpotifyKey, spotifyArtistChan)
+    go getSpotifyArtistByID(&sWait, id, authSpotifyKey, spotifyArtistChan)
 
     spotifyArtist := <- spotifyArtistChan
     fmt.Println("Artist name:", spotifyArtist.Name)
@@ -310,7 +318,7 @@ func polyphonicGetSpotifyArtistBySearch(c *gin.Context) {
     spotifyArtistSearchChan := make(chan SpotifyArtistSearch)
 
     params := url.QueryEscape(terms) + "&type=artist"
-    go getSpotifyArtistsBySearch(params, authSpotifyKey, spotifyArtistSearchChan)
+    go getSpotifyArtistsBySearch(&sWait, params, authSpotifyKey, spotifyArtistSearchChan)
 
     spotifyArtistSearch := <- spotifyArtistSearchChan
     fmt.Println("First artist name:", spotifyArtistSearch.Artists.Items[0].Name)
@@ -331,7 +339,7 @@ func polyphonicGetSpotifyPlaylistByID(c *gin.Context) {
 
     /* Get Playlist by ID */
     spotifyPlaylistChan := make(chan SpotifyPlaylist)
-    go getSpotifyPlaylistByID(id, authSpotifyKey, spotifyPlaylistChan)
+    go getSpotifyPlaylistByID(&sWait, id, authSpotifyKey, spotifyPlaylistChan)
 
     spotifyPlayist := <- spotifyPlaylistChan
 
@@ -344,7 +352,7 @@ func polyphonicGetSpotifyPlaylistByID(c *gin.Context) {
 
         for getMore {
             nextSpotifyPlaylistTracksChan := make(chan Tracks)
-            go getNextSpotifyPlaylist(nextURL, authSpotifyKey, nextSpotifyPlaylistTracksChan)
+            go getNextSpotifyPlaylist(&sWait, nextURL, authSpotifyKey, nextSpotifyPlaylistTracksChan)
 
             nextSpotifyPlaylistTracks := <- nextSpotifyPlaylistTracksChan
             fmt.Println("tracks from next section:", len(nextSpotifyPlaylistTracks.Items))
@@ -377,7 +385,7 @@ func polyphonicGetAppleSongByID(c *gin.Context) {
 
     /* Get song by ID */
     appleMusicSongChan := make(chan AppleMusicSong)
-    go getAppleMusicSongByID(id, appleMusicKey, appleMusicSongChan)
+    go getAppleMusicSongByID(&aWait, id, appleMusicKey, appleMusicSongChan)
 
     appleMusicSong := <- appleMusicSongChan
     fmt.Println("Song title:", appleMusicSong.Data[0].Attributes.Name, "by", appleMusicSong.Data[0].Attributes.ArtistName)
@@ -399,7 +407,7 @@ func polyphonicGetAppleSongsBySearch(c *gin.Context) {
     /* Get song by search */
     appleMusicSongSearchChan := make(chan AppleMusicSongSearch)
 
-    go getAppleMusicSongsBySearch(terms, appleMusicKey, appleMusicSongSearchChan)
+    go getAppleMusicSongsBySearch(&aWait, terms, appleMusicKey, appleMusicSongSearchChan)
 
     appleMusicSongSearch := <- appleMusicSongSearchChan
     fmt.Println("First Song title:", appleMusicSongSearch.Results.Songs.Data[0].Attributes.Name, "by", appleMusicSongSearch.Results.Songs.Data[0].Attributes.ArtistName)
@@ -418,7 +426,7 @@ func polyphonicGetAppleAlbumByID(c *gin.Context) {
 
     /* Get album by ID */
     appleMusicAlbumChan := make(chan AppleMusicAlbum)
-    go getAppleMusicAlbumByID(id, appleMusicKey, appleMusicAlbumChan)
+    go getAppleMusicAlbumByID(&aWait, id, appleMusicKey, appleMusicAlbumChan)
 
     appleMusicAlbum := <- appleMusicAlbumChan
     fmt.Println("Album title:", appleMusicAlbum.Data[0].Attributes.Name, "by", appleMusicAlbum.Data[0].Attributes.ArtistName)
@@ -437,7 +445,7 @@ func polyphonicGetAppleArtistByID(c *gin.Context) {
 
     /* Get artist by ID */
     appleMusicArtistChan := make(chan AppleMusicArtist)
-    go getAppleMusicArtistByID(id, appleMusicKey, appleMusicArtistChan)
+    go getAppleMusicArtistByID(&aWait, id, appleMusicKey, appleMusicArtistChan)
 
     appleMusicArtist := <- appleMusicArtistChan
     fmt.Println("Artist name:", appleMusicArtist.Data[0].Attributes.Name)
@@ -460,7 +468,7 @@ func polyphonicGetAppleArtistBySearch(c *gin.Context) {
     appleMusicArtistSearchChan := make(chan AppleMusicArtistSearch)
 
     params := url.QueryEscape(terms)
-    go getAppleMusicArtistsBySearch(params, appleMusicKey, appleMusicArtistSearchChan)
+    go getAppleMusicArtistsBySearch(&aWait, params, appleMusicKey, appleMusicArtistSearchChan)
 
     appleMusicArtistSearch := <- appleMusicArtistSearchChan
     fmt.Println("First artist name:", appleMusicArtistSearch.Results.Artists.Data[0].Attributes.Name)
@@ -479,7 +487,7 @@ func polyphonicGetApplePlaylistByID(c *gin.Context) {
 
     /* Get Playlist by ID */
     appleMusicPlaylistChan := make(chan AppleMusicPlaylist)
-    go getAppleMusicPlaylistByID(id, appleMusicKey, appleMusicPlaylistChan)
+    go getAppleMusicPlaylistByID(&aWait, id, appleMusicKey, appleMusicPlaylistChan)
 
     appleMusicPlaylist := <- appleMusicPlaylistChan
 
@@ -492,7 +500,7 @@ func polyphonicGetApplePlaylistByID(c *gin.Context) {
 
         for getMore {
             nextAppleMusicPlaylistTracksChan := make(chan AppleMusicPlaylistTracks)
-            go getNextAppleMusicPlaylist(nextURL, appleMusicKey, nextAppleMusicPlaylistTracksChan)
+            go getNextAppleMusicPlaylist(&aWait, nextURL, appleMusicKey, nextAppleMusicPlaylistTracksChan)
 
             nextAppleMusicPlaylistTracks := <- nextAppleMusicPlaylistTracksChan
             fmt.Println("tracks from next section:", len(nextAppleMusicPlaylistTracks.Data))

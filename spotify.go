@@ -12,10 +12,14 @@ import (
 	"strconv"
 	"strings"
 	"time"
+    "sync"
 )
 
 // used to avoid going over rate limit
-var waitTimeSec int = 0
+type SpotifyWaitContainer struct {
+    mu       sync.Mutex
+    waitTime int
+}
 
 /* -- song data structures -- */
 type SpotifySong struct {
@@ -139,20 +143,28 @@ type ExternalURLs struct {
 /*
     Checks to see if there is a wait time to be served b/c of rate limiting
 */
-func spotifyWaitIfLimited() {
-    if waitTimeSec > 0 {
-        fmt.Println("Spotify: Retrying after:", waitTimeSec, "seconds")
-        waitDur := time.Duration(waitTimeSec)
+func spotifyWaitIfLimited(w *SpotifyWaitContainer) {
+    w.mu.Lock()
+
+    if w.waitTime > 0 {
+        fmt.Println("Spotify: Retrying after:", w.waitTime, "seconds")
+        waitDur := time.Duration(w.waitTime)
         time.Sleep(waitDur * time.Second)
 
-        waitTimeSec = 0
+        w.waitTime = 0
     }
+
+    w.mu.Unlock()
 }
 
 // gets Spotify auth key from local environment variables
 // and returns the key and expiration time (from now)
-func getSpotifyAuthKey(key chan string, exp chan int64) {
-    spotifyWaitIfLimited()
+func getSpotifyAuthKey(
+    w *SpotifyWaitContainer,
+    key chan string,
+    exp chan int64,
+) {
+    spotifyWaitIfLimited(w)
 
     type Response struct {
         AccessToken string `json:"access_token"`
@@ -178,7 +190,9 @@ func getSpotifyAuthKey(key chan string, exp chan int64) {
     request.Header.Add("Content-Type", "application/x-www-form-urlencoded")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
@@ -187,9 +201,13 @@ func getSpotifyAuthKey(key chan string, exp chan int64) {
             fmt.Println("Too many requests")
             retryAfter := response.Header.Values("retry-after")[0]
             retryInt, _ := strconv.Atoi(retryAfter)
-            waitTimeSec = retryInt
 
-            spotifyWaitIfLimited()
+            w.mu.Lock()
+            w.waitTime = retryInt
+
+            spotifyWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -215,8 +233,13 @@ func getSpotifyAuthKey(key chan string, exp chan int64) {
     exp <- responseObject.ExpiresIn
 }
 
-func getSpotifySongByID(id string, key string, spotifySong chan SpotifySong) {
-    spotifyWaitIfLimited()
+func getSpotifySongByID(
+    w *SpotifyWaitContainer,
+    id string,
+    key string,
+    spotifySong chan SpotifySong,
+) {
+    spotifyWaitIfLimited(w)
 
     url := "https://api.spotify.com/v1/tracks/" + id
     authVal := "Bearer " + key
@@ -227,7 +250,9 @@ func getSpotifySongByID(id string, key string, spotifySong chan SpotifySong) {
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
@@ -236,9 +261,13 @@ func getSpotifySongByID(id string, key string, spotifySong chan SpotifySong) {
             fmt.Println("Too many requests")
             retryAfter := response.Header.Values("retry-after")[0]
             retryInt, _ := strconv.Atoi(retryAfter)
-            waitTimeSec = retryInt
 
-            spotifyWaitIfLimited()
+            w.mu.Lock()
+            w.waitTime = retryInt
+
+            spotifyWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -263,8 +292,13 @@ func getSpotifySongByID(id string, key string, spotifySong chan SpotifySong) {
     spotifySong <- responseObject
 }
 
-func getSpotifySongsBySearch(params string, key string, spotifySongSearch chan SpotifySongSearch) {
-    spotifyWaitIfLimited()
+func getSpotifySongsBySearch(
+    w *SpotifyWaitContainer,
+    params string,
+    key string,
+    spotifySongSearch chan SpotifySongSearch,
+) {
+    spotifyWaitIfLimited(w)
 
     url := "https://api.spotify.com/v1/search?q=" + params
     fmt.Println(url)
@@ -276,7 +310,9 @@ func getSpotifySongsBySearch(params string, key string, spotifySongSearch chan S
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
@@ -285,9 +321,13 @@ func getSpotifySongsBySearch(params string, key string, spotifySongSearch chan S
             fmt.Println("Too many requests")
             retryAfter := response.Header.Values("retry-after")[0]
             retryInt, _ := strconv.Atoi(retryAfter)
-            waitTimeSec = retryInt
 
-            spotifyWaitIfLimited()
+            w.mu.Lock()
+            w.waitTime = retryInt
+
+            spotifyWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -313,8 +353,13 @@ func getSpotifySongsBySearch(params string, key string, spotifySongSearch chan S
     spotifySongSearch <- responseObject
 }
 
-func getSpotifyAlbumByID(id string, key string, spotifyAlbum chan SpotifyAlbum) {
-    spotifyWaitIfLimited()
+func getSpotifyAlbumByID(
+    w *SpotifyWaitContainer,
+    id string,
+    key string,
+    spotifyAlbum chan SpotifyAlbum,
+) {
+    spotifyWaitIfLimited(w)
 
     url := "https://api.spotify.com/v1/albums/" + id
     authVal := "Bearer " + key
@@ -325,7 +370,9 @@ func getSpotifyAlbumByID(id string, key string, spotifyAlbum chan SpotifyAlbum) 
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
@@ -334,9 +381,13 @@ func getSpotifyAlbumByID(id string, key string, spotifyAlbum chan SpotifyAlbum) 
             fmt.Println("Too many requests")
             retryAfter := response.Header.Values("retry-after")[0]
             retryInt, _ := strconv.Atoi(retryAfter)
-            waitTimeSec = retryInt
 
-            spotifyWaitIfLimited()
+            w.mu.Lock()
+            w.waitTime = retryInt
+
+            spotifyWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -361,8 +412,13 @@ func getSpotifyAlbumByID(id string, key string, spotifyAlbum chan SpotifyAlbum) 
     spotifyAlbum <- responseObject
 }
 
-func getSpotifyArtistByID(id string, key string, spotifyArtist chan SpotifyArtist) {
-    spotifyWaitIfLimited()
+func getSpotifyArtistByID(
+    w *SpotifyWaitContainer,
+    id string,
+    key string,
+    spotifyArtist chan SpotifyArtist,
+) {
+    spotifyWaitIfLimited(w)
 
     url := "https://api.spotify.com/v1/artists/" + id
     authVal := "Bearer " + key
@@ -373,7 +429,9 @@ func getSpotifyArtistByID(id string, key string, spotifyArtist chan SpotifyArtis
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
@@ -382,9 +440,13 @@ func getSpotifyArtistByID(id string, key string, spotifyArtist chan SpotifyArtis
             fmt.Println("Too many requests")
             retryAfter := response.Header.Values("retry-after")[0]
             retryInt, _ := strconv.Atoi(retryAfter)
-            waitTimeSec = retryInt
 
-            spotifyWaitIfLimited()
+            w.mu.Lock()
+            w.waitTime = retryInt
+
+            spotifyWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -409,8 +471,13 @@ func getSpotifyArtistByID(id string, key string, spotifyArtist chan SpotifyArtis
     spotifyArtist <- responseObject
 }
 
-func getSpotifyArtistsBySearch(params string, key string, spotifyArtistSearch chan SpotifyArtistSearch) {
-    spotifyWaitIfLimited()
+func getSpotifyArtistsBySearch(
+    w *SpotifyWaitContainer,
+    params string,
+    key string,
+    spotifyArtistSearch chan SpotifyArtistSearch,
+) {
+    spotifyWaitIfLimited(w)
 
     url := "https://api.spotify.com/v1/search?q=" + params
     fmt.Println(url)
@@ -422,7 +489,9 @@ func getSpotifyArtistsBySearch(params string, key string, spotifyArtistSearch ch
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
@@ -431,9 +500,13 @@ func getSpotifyArtistsBySearch(params string, key string, spotifyArtistSearch ch
             fmt.Println("Too many requests")
             retryAfter := response.Header.Values("retry-after")[0]
             retryInt, _ := strconv.Atoi(retryAfter)
-            waitTimeSec = retryInt
 
-            spotifyWaitIfLimited()
+            w.mu.Lock()
+            w.waitTime = retryInt
+
+            spotifyWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -458,8 +531,13 @@ func getSpotifyArtistsBySearch(params string, key string, spotifyArtistSearch ch
     spotifyArtistSearch <- responseObject
 }
 
-func getSpotifyPlaylistByID(id string, key string, spotifyPlaylist chan SpotifyPlaylist) {
-    spotifyWaitIfLimited()
+func getSpotifyPlaylistByID(
+    w *SpotifyWaitContainer,
+    id string,
+    key string,
+    spotifyPlaylist chan SpotifyPlaylist,
+) {
+    spotifyWaitIfLimited(w)
 
     url := "https://api.spotify.com/v1/playlists/" + id
     authVal := "Bearer " + key
@@ -470,7 +548,9 @@ func getSpotifyPlaylistByID(id string, key string, spotifyPlaylist chan SpotifyP
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
@@ -479,9 +559,13 @@ func getSpotifyPlaylistByID(id string, key string, spotifyPlaylist chan SpotifyP
             fmt.Println("Too many requests")
             retryAfter := response.Header.Values("retry-after")[0]
             retryInt, _ := strconv.Atoi(retryAfter)
-            waitTimeSec = retryInt
 
-            spotifyWaitIfLimited()
+            w.mu.Lock()
+            w.waitTime = retryInt
+
+            spotifyWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -506,8 +590,13 @@ func getSpotifyPlaylistByID(id string, key string, spotifyPlaylist chan SpotifyP
     spotifyPlaylist <- responseObject
 }
 
-func getNextSpotifyPlaylist(nextURL string, key string, nextSpotifyPlaylistTracks chan Tracks) {
-    spotifyWaitIfLimited()
+func getNextSpotifyPlaylist(
+    w *SpotifyWaitContainer,
+    nextURL string,
+    key string,
+    nextSpotifyPlaylistTracks chan Tracks,
+) {
+    spotifyWaitIfLimited(w)
 
     authVal := "Bearer " + key
 
@@ -517,7 +606,9 @@ func getNextSpotifyPlaylist(nextURL string, key string, nextSpotifyPlaylistTrack
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
@@ -526,9 +617,13 @@ func getNextSpotifyPlaylist(nextURL string, key string, nextSpotifyPlaylistTrack
             fmt.Println("Too many requests")
             retryAfter := response.Header.Values("retry-after")[0]
             retryInt, _ := strconv.Atoi(retryAfter)
-            waitTimeSec = retryInt
 
-            spotifyWaitIfLimited()
+            w.mu.Lock()
+            w.waitTime = retryInt
+
+            spotifyWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }

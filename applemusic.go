@@ -1,17 +1,22 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"os"
-	"strings"
-	"time"
+    "encoding/json"
+    "fmt"
+    "io/ioutil"
+    "log"
+    "net/http"
+    "os"
+    "strings"
+    "sync"
+    "time"
 )
 
-var wait bool = false
+// used to avoid going over rate limit
+type AppleWaitContainer struct {
+    mu   sync.Mutex
+    wait bool
+}
 
 /* -- song data structures -- */
 type AppleMusicSong struct {
@@ -157,20 +162,29 @@ type AppleMusicPlaylistTracksData struct {
 /* -- playlist data structures -- */
 
 /*
-    Checks to see if there is a wait time to be served b/c of rate limiting
+Checks to see if there is a wait time to be served b/c of rate limiting
 */
-func appleMusicWaitIfLimited() {
-    if wait {
-        appleWaitTime := 5
+func appleMusicWaitIfLimited(w *AppleWaitContainer) {
+    w.mu.Lock()
+
+    if w.wait {
+        appleWaitTime := 10
         fmt.Println("Apple: Retrying after:", appleWaitTime, "seconds")
         time.Sleep(time.Duration(appleWaitTime) * time.Second)
 
-        wait = false
+        w.wait = false
     }
+
+    w.mu.Unlock()
 }
 
-func getAppleMusicSongByID(id string, key string, appleMusicSong chan AppleMusicSong) {
-    appleMusicWaitIfLimited()
+func getAppleMusicSongByID(
+    w *AppleWaitContainer,
+    id string,
+    key string,
+    appleMusicSong chan AppleMusicSong,
+) {
+    appleMusicWaitIfLimited(w)
 
     url := "https://api.music.apple.com/v1/catalog/us/songs/" + id
     authVal := "Bearer " + key
@@ -181,16 +195,22 @@ func getAppleMusicSongByID(id string, key string, appleMusicSong chan AppleMusic
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
     for attempt < 2 {
         if response.StatusCode == http.StatusTooManyRequests {
             fmt.Println("Too many requests")
-            wait = true
 
-            appleMusicWaitIfLimited()
+            w.mu.Lock()
+            w.wait = true
+
+            appleMusicWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -215,8 +235,13 @@ func getAppleMusicSongByID(id string, key string, appleMusicSong chan AppleMusic
     appleMusicSong <- responseObject
 }
 
-func getAppleMusicSongsBySearch(params string, key string, appleMusicSongSearch chan AppleMusicSongSearch) {
-    appleMusicWaitIfLimited()
+func getAppleMusicSongsBySearch(
+    w *AppleWaitContainer,
+    params string,
+    key string,
+    appleMusicSongSearch chan AppleMusicSongSearch,
+) {
+    appleMusicWaitIfLimited(w)
 
     url := "https://api.music.apple.com/v1/catalog/us/search?types=songs&term=" + params
     fmt.Println(url)
@@ -228,16 +253,22 @@ func getAppleMusicSongsBySearch(params string, key string, appleMusicSongSearch 
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
     for attempt < 2 {
         if response.StatusCode == http.StatusTooManyRequests {
             fmt.Println("Too many requests")
-            wait = true
 
-            appleMusicWaitIfLimited()
+            w.mu.Lock()
+            w.wait = true
+
+            appleMusicWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -262,8 +293,13 @@ func getAppleMusicSongsBySearch(params string, key string, appleMusicSongSearch 
     appleMusicSongSearch <- responseObject
 }
 
-func getAppleMusicAlbumByID(id string, key string, appleMusicAlbum chan AppleMusicAlbum) {
-    appleMusicWaitIfLimited()
+func getAppleMusicAlbumByID(
+    w *AppleWaitContainer,
+    id string,
+    key string,
+    appleMusicAlbum chan AppleMusicAlbum,
+) {
+    appleMusicWaitIfLimited(w)
 
     url := "https://api.music.apple.com/v1/catalog/us/albums/" + id
     authVal := "Bearer " + key
@@ -274,16 +310,22 @@ func getAppleMusicAlbumByID(id string, key string, appleMusicAlbum chan AppleMus
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
     for attempt < 2 {
         if response.StatusCode == http.StatusTooManyRequests {
             fmt.Println("Too many requests")
-            wait = true
 
-            appleMusicWaitIfLimited()
+            w.mu.Lock()
+            w.wait = true
+
+            appleMusicWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -308,8 +350,13 @@ func getAppleMusicAlbumByID(id string, key string, appleMusicAlbum chan AppleMus
     appleMusicAlbum <- responseObject
 }
 
-func getAppleMusicArtistByID(id string, key string, appleMusicArtist chan AppleMusicArtist) {
-    appleMusicWaitIfLimited()
+func getAppleMusicArtistByID(
+    w *AppleWaitContainer,
+    id string,
+    key string,
+    appleMusicArtist chan AppleMusicArtist,
+) {
+    appleMusicWaitIfLimited(w)
 
     url := "https://api.music.apple.com/v1/catalog/us/artists/" + id
     authVal := "Bearer " + key
@@ -320,16 +367,22 @@ func getAppleMusicArtistByID(id string, key string, appleMusicArtist chan AppleM
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
     for attempt < 2 {
         if response.StatusCode == http.StatusTooManyRequests {
             fmt.Println("Too many requests")
-            wait = true
 
-            appleMusicWaitIfLimited()
+            w.mu.Lock()
+            w.wait = true
+
+            appleMusicWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -354,8 +407,13 @@ func getAppleMusicArtistByID(id string, key string, appleMusicArtist chan AppleM
     appleMusicArtist <- responseObject
 }
 
-func getAppleMusicArtistsBySearch(params string, key string, appleMusicArtistSearch chan AppleMusicArtistSearch) {
-    appleMusicWaitIfLimited()
+func getAppleMusicArtistsBySearch(
+    w *AppleWaitContainer,
+    params string,
+    key string,
+    appleMusicArtistSearch chan AppleMusicArtistSearch,
+) {
+    appleMusicWaitIfLimited(w)
 
     url := "https://api.music.apple.com/v1/catalog/us/search?types=artists&term=" + params
     fmt.Println(url)
@@ -367,16 +425,22 @@ func getAppleMusicArtistsBySearch(params string, key string, appleMusicArtistSea
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
     for attempt < 2 {
         if response.StatusCode == http.StatusTooManyRequests {
             fmt.Println("Too many requests")
-            wait = true
 
-            appleMusicWaitIfLimited()
+            w.mu.Lock()
+            w.wait = true
+
+            appleMusicWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -401,8 +465,13 @@ func getAppleMusicArtistsBySearch(params string, key string, appleMusicArtistSea
     appleMusicArtistSearch <- responseObject
 }
 
-func getAppleMusicPlaylistByID(id string, key string, appleMusicPlaylist chan AppleMusicPlaylist) {
-    appleMusicWaitIfLimited()
+func getAppleMusicPlaylistByID(
+    w *AppleWaitContainer,
+    id string,
+    key string,
+    appleMusicPlaylist chan AppleMusicPlaylist,
+) {
+    appleMusicWaitIfLimited(w)
 
     url := "https://api.music.apple.com/v1/catalog/us/playlists/" + id
     authVal := "Bearer " + key
@@ -413,16 +482,22 @@ func getAppleMusicPlaylistByID(id string, key string, appleMusicPlaylist chan Ap
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
     for attempt < 2 {
         if response.StatusCode == http.StatusTooManyRequests {
             fmt.Println("Too many requests")
-            wait = true
 
-            appleMusicWaitIfLimited()
+            w.mu.Lock()
+            w.wait = true
+
+            appleMusicWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
@@ -447,9 +522,13 @@ func getAppleMusicPlaylistByID(id string, key string, appleMusicPlaylist chan Ap
     appleMusicPlaylist <- responseObject
 }
 
-func getNextAppleMusicPlaylist(nextURL string, key string,
-    nextAppleMusicPlaylistTracks chan AppleMusicPlaylistTracks) {
-    appleMusicWaitIfLimited()
+func getNextAppleMusicPlaylist(
+    w *AppleWaitContainer,
+    nextURL string,
+    key string,
+    nextAppleMusicPlaylistTracks chan AppleMusicPlaylistTracks,
+) {
+    appleMusicWaitIfLimited(w)
 
     url := "https://api.music.apple.com" + nextURL
 
@@ -461,16 +540,22 @@ func getNextAppleMusicPlaylist(nextURL string, key string,
     request.Header.Add("Content-Type", "application/json")
     request.Header.Add("Authorization", authVal)
 
+    w.mu.Lock()
     response, err := client.Do(request)
+    w.mu.Unlock()
 
     // try request again after a delay if there is a 429 error
     attempt := 0
     for attempt < 2 {
         if response.StatusCode == http.StatusTooManyRequests {
             fmt.Println("Too many requests")
-            wait = true
 
-            appleMusicWaitIfLimited()
+            w.mu.Lock()
+            w.wait = true
+
+            appleMusicWaitIfLimited(w)
+            w.mu.Unlock()
+
             attempt++
             response, err = client.Do(request)
         }
