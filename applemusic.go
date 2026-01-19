@@ -203,7 +203,7 @@ func getAppleMusicSongByID(
     attempt := 0
     for attempt < 2 {
         if response.StatusCode == http.StatusTooManyRequests {
-            fmt.Println("Too many requests")
+            fmt.Println("Apple: Too many requests")
 
             w.mu.Lock()
             w.wait = true
@@ -214,9 +214,11 @@ func getAppleMusicSongByID(
             attempt++
             response, err = client.Do(request)
         }
-
         attempt = 2
     }
+
+	fmt.Println("Failed to get apple song by id: %d", response.StatusCode)
+
 
     if err != nil {
         fmt.Print(err.Error())
@@ -275,6 +277,7 @@ func getAppleMusicSongsBySearch(
 
         attempt = 2
     }
+    fmt.Println(response.StatusCode)
 
     if err != nil {
         fmt.Print(err.Error())

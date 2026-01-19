@@ -198,7 +198,7 @@ func getSpotifyAuthKey(
     attempt := 0
     for attempt < 2 {
         if response.StatusCode == http.StatusTooManyRequests {
-            fmt.Println("Too many requests")
+            fmt.Println("Spotify: Too many requests")
             retryAfter := response.Header.Values("retry-after")[0]
             retryInt, _ := strconv.Atoi(retryAfter)
 
